@@ -1,12 +1,17 @@
 package com.google.engedu.puzzle8;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.Bundle;
+import android.preference.DialogPreference;
+import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.RelativeLayout;
 
 
@@ -15,13 +20,21 @@ public class PuzzleActivity extends AppCompatActivity {
     static final int REQUEST_IMAGE_CAPTURE = 1;
     private Bitmap imageBitmap = null;
     private PuzzleBoardView boardView;
+    private ImageView ivPhoto;
+    private RelativeLayout container;
+
+    private CharSequence number_of_tiles[]={"3X3","4X4","5X5"};
+    int selectedTile;
+    int NUM_OF_TILES;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_puzzle);
 
-        RelativeLayout container = (RelativeLayout) findViewById(R.id.puzzle_container);
+        ivPhoto=(ImageView)findViewById(R.id.ivPhoto);
+
+        container = (RelativeLayout) findViewById(R.id.puzzle_container);
         boardView = new PuzzleBoardView(this);
 
         // Some setup of the view.
@@ -45,17 +58,62 @@ public class PuzzleActivity extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+            selectedTile=0;
+            NUM_OF_TILES=3;
+            AlertDialog .Builder builder = new AlertDialog.Builder(this);
+
+            builder.setTitle("Select Number of Tiles ")
+                    .setSingleChoiceItems(number_of_tiles, 0, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            selectedTile = which;
+                        }
+                    })
+                    .setPositiveButton("OKKAY",new DialogInterface.OnClickListener()
+                    {
+                        @Override
+                    public void onClick(DialogInterface dialog,int which){
+                            NUM_OF_TILES=NUM_OF_TILES+selectedTile;
+                            PuzzleBoard.NUM_TILES=NUM_OF_TILES;
+                        }
+                    }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                     @Override
+                        public void onClick(DialogInterface dialog, int which) {
+
+                }
+            });
+            builder.create();
+            builder.show();
             return true;
         }
+
 
         return super.onOptionsItemSelected(item);
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    protected void onActivityResult(int requestCode, int resultCode, Intent data)
+    {
+
+        if(requestCode==REQUEST_IMAGE_CAPTURE && resultCode==RESULT_OK)
+        {
+            Bundle extras =data.getExtras();
+            imageBitmap=(Bitmap)extras.get("data");
+            boardView.initialize(imageBitmap,container);
+          //  ivPhoto.setImageBitmap(imageBitmap);
+
+        }
+
     }
 
     public void dispatchTakePictureIntent(View view) {
+
+        Intent takePictureIntent=new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+
+        if(takePictureIntent.resolveActivity(getPackageManager())!=null)
+        {
+            startActivityForResult(takePictureIntent,REQUEST_IMAGE_CAPTURE);
+        }
     }
 
     public void shuffleImage(View view) {
