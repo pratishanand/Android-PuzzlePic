@@ -9,6 +9,9 @@ import android.view.View;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.PriorityQueue;
 import java.util.Random;
 
 public class PuzzleBoardView extends View {
@@ -18,6 +21,13 @@ public class PuzzleBoardView extends View {
     private ArrayList<PuzzleBoard> animation;
     private Random random = new Random();
 
+    private Comparator<PuzzleBoard> comparator = new Comparator<PuzzleBoard>() {
+        @Override
+        public int compare(PuzzleBoard lhs, PuzzleBoard rhs) {
+            return lhs.priority()-rhs.priority();
+        }
+    };
+
     public PuzzleBoardView(Context context) {
         super(context);
         activity = (Activity) context;
@@ -25,7 +35,7 @@ public class PuzzleBoardView extends View {
     }
 
     public void initialize(Bitmap imageBitmap, View parent) {
-        int width = getWidth();
+        int width = parent.getWidth();
         puzzleBoard = new PuzzleBoard(imageBitmap, width);
     }
 
@@ -52,6 +62,14 @@ public class PuzzleBoardView extends View {
 
     public void shuffle() {
         if (animation == null && puzzleBoard != null) {
+            for(int i=0;i<NUM_SHUFFLE_STEPS;i++)
+            {
+                ArrayList<PuzzleBoard> neighbours = puzzleBoard.neighbours();
+                int randomInt=random.nextInt(neighbours.size());
+                puzzleBoard=neighbours.get(randomInt);
+            }
+            invalidate();
+
             // Do something.
         }
     }
@@ -75,5 +93,36 @@ public class PuzzleBoardView extends View {
     }
 
     public void solve() {
+
+   //     Comparator<? super PuzzleBoard> comparator;
+        PriorityQueue<PuzzleBoard> priorityQueue = new PriorityQueue<>(1,comparator);
+        PuzzleBoard currentBoard = new PuzzleBoard(puzzleBoard,-1);
+        currentBoard.setPreviousBoard(null);
+
+        priorityQueue.add(currentBoard);
+
+        while(!priorityQueue.isEmpty())
+        {
+            PuzzleBoard bestState=priorityQueue.poll();
+            if(bestState.resolved())
+            {
+                ArrayList<PuzzleBoard> steps = new ArrayList<>();
+
+                while(bestState.getPreviousBoard()!=null){
+                    steps.add(bestState);
+                    bestState=bestState.getPreviousBoard();
+                }
+
+                Collections.reverse(steps);
+                animation=steps;
+                invalidate();
+                break;
+            }
+            else
+            {
+                priorityQueue.addAll(bestState.neighbours());
+            }
+        }
+
     }
 }
