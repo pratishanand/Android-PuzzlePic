@@ -8,7 +8,8 @@ import java.util.ArrayList;
 
 public class PuzzleBoard {
 
-    private static final int NUM_TILES = 3;
+    public static int NUM_TILES = 3;
+
     private static final int[][] NEIGHBOUR_COORDS = {
             { -1, 0 },
             { 1, 0 },
@@ -16,12 +17,48 @@ public class PuzzleBoard {
             { 0, 1 }
     };
     private ArrayList<PuzzleTile> tiles;
+    private int stepNumber;
+    PuzzleBoard previousBoard;
 
-    PuzzleBoard(Bitmap bitmap, int parentWidth) {
+    public PuzzleBoard getPreviousBoard() {
+        return previousBoard;
     }
 
-    PuzzleBoard(PuzzleBoard otherBoard) {
+    public void setPreviousBoard(PuzzleBoard previousBoard) {
+        this.previousBoard = previousBoard;
+    }
+
+
+
+    PuzzleBoard(Bitmap bitmap, int parentWidth) {
+        stepNumber = 0;
+        tiles = new ArrayList<>();
+
+        Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap,parentWidth,parentWidth,true);
+
+        for(int y=0; y<NUM_TILES ; y++)
+        {
+            for(int x=0 ; x<NUM_TILES ; x++)
+            {
+                int tileNumber = y*NUM_TILES +x;
+                if(tileNumber!=NUM_TILES*NUM_TILES-1){
+                    Bitmap tileBitmap = Bitmap.createBitmap(scaledBitmap, x*scaledBitmap.getWidth()/NUM_TILES ,y*scaledBitmap.getHeight()/NUM_TILES,parentWidth/NUM_TILES,parentWidth/NUM_TILES);
+
+                    PuzzleTile tile = new PuzzleTile(tileBitmap,tileNumber);
+                    tiles.add(tile);
+                }
+                else
+                {
+                    tiles.add(null);
+                }
+            }
+        }
+    }
+
+    PuzzleBoard(PuzzleBoard otherBoard, int steps) {
+        previousBoard = otherBoard;
         tiles = (ArrayList<PuzzleTile>) otherBoard.tiles.clone();
+        this.stepNumber = steps + 1;
     }
 
     public void reset() {
@@ -93,11 +130,61 @@ public class PuzzleBoard {
     }
 
     public ArrayList<PuzzleBoard> neighbours() {
-        return null;
+        ArrayList<PuzzleBoard> neighbours = new ArrayList<>();
+        int emptyTileX=0;
+        int emptyTileY=0;
+
+        for(int i=0;i<NUM_TILES*NUM_TILES;i++)
+        {
+            if(tiles.get(i)==null)
+            {
+                emptyTileX=i%NUM_TILES;
+                emptyTileY=i/NUM_TILES;
+                break;
+            }
+        }
+
+        for(int [] coordinates:NEIGHBOUR_COORDS)
+        {
+            int neighbourX=emptyTileX+coordinates[0];
+            int neighbourY=emptyTileY+coordinates[1];
+
+            if(neighbourX>=0 && neighbourX<NUM_TILES &&neighbourY>=0&&neighbourY<NUM_TILES)
+            {
+                PuzzleBoard neighbourBoard = new PuzzleBoard(this,stepNumber);
+
+                neighbourBoard.swapTiles(XYtoIndex(neighbourX,neighbourY),XYtoIndex(emptyTileX,emptyTileY));
+
+                neighbours.add(neighbourBoard);
+            }
+        }
+        return neighbours;
+
     }
 
-    public int priority() {
-        return 0;
+    public int priority()
+    {
+        int Manhatten_Distance =0;
+
+        for(int i=0;i<NUM_TILES*NUM_TILES;i++)
+        {
+            PuzzleTile tile = tiles.get(i);
+            if(tile!=null)
+            {
+                int correctPosition =tile.getNumber();
+
+                int correctX=correctPosition%NUM_TILES;
+                int correctY=correctPosition/NUM_TILES;
+
+                int currentX=i%NUM_TILES;
+                int currentY=i/NUM_TILES;
+
+                Manhatten_Distance+=Math.abs(currentX-correctX)+Math.abs(currentY-correctY);
+
+            }
+        }
+
+        return Manhatten_Distance+stepNumber;
     }
 
 }
